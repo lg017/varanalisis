@@ -42,9 +42,28 @@ h1 {
 # ==========================================
 
 st.title("🎛️ Monitor de Potenciómetro ESP32")
+
+# ==========================================
+# INTRODUCCIÓN DEL SISTEMA
+# ==========================================
+
 st.markdown("""
-Esta aplicación visualiza datos enviados desde un ESP32 conectado a un potenciómetro.
-Los datos son almacenados en InfluxDB y posteriormente analizados en esta interfaz.
+## 🔎 ¿Qué hace este sistema?
+
+Este proyecto utiliza un **potenciómetro conectado a un ESP32** para realizar lecturas analógicas en tiempo real.
+
+El potenciómetro funciona como una **resistencia variable**, permitiendo modificar manualmente el voltaje que recibe el microcontrolador.  
+El ESP32 convierte esta señal analógica en valores digitales dentro de un rango de **0 a 4095**, utilizando su convertidor ADC de 12 bits.
+
+Posteriormente:
+
+- El ESP32 procesa la lectura.
+- Convierte el valor a porcentaje.
+- Envía los datos mediante WiFi.
+- Almacena la información en InfluxDB.
+- Streamlit visualiza y analiza los datos obtenidos.
+
+La interfaz permite observar gráficas, estadísticas y filtros para analizar el comportamiento del potenciómetro en tiempo real.
 """)
 
 # ==========================================
@@ -70,6 +89,43 @@ with st.expander("ℹ️ Información del Sistema"):
         st.write("- Variable medida: Porcentaje de posición")
 
 # ==========================================
+# FUNCIÓN EXPLICATIVA DEL POTENCIÓMETRO
+# ==========================================
+
+def explicar_potenciometro(valor_porcentaje):
+
+    if valor_porcentaje <= 20:
+        return (
+            "🔵 El potenciómetro se encuentra en un nivel BAJO. "
+            "La resistencia variable permite un paso reducido de señal "
+            "eléctrica hacia el ESP32."
+        )
+
+    elif valor_porcentaje <= 40:
+        return (
+            "🟢 El potenciómetro está en un nivel MEDIO-BAJO. "
+            "El voltaje analógico comienza a incrementarse de manera gradual."
+        )
+
+    elif valor_porcentaje <= 60:
+        return (
+            "🟡 El potenciómetro está en un nivel MEDIO. "
+            "El ESP32 recibe aproximadamente la mitad del rango analógico disponible."
+        )
+
+    elif valor_porcentaje <= 80:
+        return (
+            "🟠 El potenciómetro se encuentra en un nivel MEDIO-ALTO. "
+            "La señal analógica enviada al ESP32 es elevada."
+        )
+
+    else:
+        return (
+            "🔴 El potenciómetro está en un nivel ALTO. "
+            "La lectura analógica está cercana al máximo permitido por el ADC del ESP32."
+        )
+
+# ==========================================
 # CARGA DE CSV
 # ==========================================
 
@@ -92,7 +148,6 @@ if uploaded_file is not None:
         # DETECTAR COLUMNAS
         # ==========================================
 
-        # Buscar columna de tiempo
         time_col = None
 
         for col in df.columns:
@@ -100,7 +155,6 @@ if uploaded_file is not None:
                 time_col = col
                 break
 
-        # Buscar columna de porcentaje
         variable_col = None
 
         for col in df.columns:
@@ -108,7 +162,6 @@ if uploaded_file is not None:
                 variable_col = col
                 break
 
-        # Si no encuentra porcentaje usa segunda columna
         if variable_col is None:
             variable_col = df.columns[1]
 
@@ -141,6 +194,16 @@ if uploaded_file is not None:
         col4.metric("Promedio", f"{promedio:.2f}%")
 
         # ==========================================
+        # INTERPRETACIÓN AUTOMÁTICA
+        # ==========================================
+
+        st.subheader("🧠 Interpretación de la Lectura")
+
+        explicacion = explicar_potenciometro(valor_actual)
+
+        st.info(explicacion)
+
+        # ==========================================
         # TABS
         # ==========================================
 
@@ -152,7 +215,7 @@ if uploaded_file is not None:
         ])
 
         # ==========================================
-        # TAB 1
+        # TAB 1 - GRÁFICAS
         # ==========================================
 
         with tab1:
@@ -177,7 +240,7 @@ if uploaded_file is not None:
             st.dataframe(df.tail(10))
 
         # ==========================================
-        # TAB 2
+        # TAB 2 - ESTADÍSTICAS
         # ==========================================
 
         with tab2:
@@ -193,7 +256,7 @@ if uploaded_file is not None:
             )
 
         # ==========================================
-        # TAB 3
+        # TAB 3 - FILTROS
         # ==========================================
 
         with tab3:
@@ -227,7 +290,7 @@ if uploaded_file is not None:
             )
 
         # ==========================================
-        # TAB 4
+        # TAB 4 - SISTEMA
         # ==========================================
 
         with tab4:
